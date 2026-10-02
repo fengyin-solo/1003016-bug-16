@@ -1,4 +1,4 @@
-"""动力配套接口：维护电源设备，覆盖降额运行、故障停机、申请报废等动作。"""
+"""动力配套接口：维护电源设备，覆盖降额运行、故障停机、申请报废与检修安排。"""
 from __future__ import annotations
 
 from typing import Any
@@ -6,13 +6,19 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Query
 
 from app.schemas import ActionResult, EntryPayload, PageResult
-from app.services.power import PowerService
+from app.services.power import (
+    NEXT_MAINT_DATE,
+    PowerService,
+)
 
 router = APIRouter(prefix="/api/power", tags=["动力配套"])
 
 service = PowerService()
 
-LIST_FIELDS = ["设备编号", "设备类型", "额定功率", "所属站点", "投用日期", "上次检修", "下次检修日", "设备状态"]
+LIST_FIELDS = [
+    "设备编号", "设备类型", "额定功率", "所属站点", "投用日期",
+    "上次检修", NEXT_MAINT_DATE, "检修状态", "设备状态",
+]
 STATUSES = ["正常运行", "降额运行", "故障停机", "已报废"]
 
 
@@ -28,6 +34,14 @@ def list_entries(
         raise HTTPException(status_code=400, detail="每页最多 200 条，请缩小分页范围")
     items, total = service.list_entries(keyword=keyword, status=status, page=page, size=size)
     return PageResult(items=items, total=total, page=page, size=size)
+
+
+# 注意：静态路径必须注册在 /{entry_id} 之前，否则 export 会被当成设备 id
+@router.get("/export")
+def export_entries() -> dict[str, Any]:
+    """导出动力配套清单：返回全量数据（列表与详情同源，口径一致）。"""
+    items, total = service.list_entries(page=1, size=10000)
+    return {"module": "power", "total": total, "items": items}
 
 
 @router.get("/{entry_id}", response_model=dict)
@@ -48,9 +62,18 @@ def create_entry(payload: EntryPayload) -> ActionResult:
     return ActionResult(ok=True, message="电源设备已登记", entry=entry)
 
 
+@router.patch("/{entry_id}", response_model=ActionResult)
+def update_entry(entry_id: int, payload: EntryPayload) -> ActionResult:
+    """修改设备字段（如已排检修计划的下次检修日）；空日期会被拦下并指出缺哪项。"""
+    entry, message = service.update_entry(entry_id, payload.values)
+    if entry is None:
+        return ActionResult(ok=False, message=message)
+    return ActionResult(ok=True, message=message, entry=entry)
+
+
 @router.post("/{entry_id}/actions", response_model=ActionResult)
 def run_action(entry_id: int, payload: EntryPayload) -> ActionResult:
-    """对单条电源设备执行降额运行、故障停机、申请报废；不允许的动作会被拦下并说明原因。"""
+    """对单条电源设备执行降额运行、故障停机、申请报废；只能按状态次序顺次推进。"""
     action = str(payload.values.get("action") or "").strip()
     entry, message = service.run_action(entry_id, action)
     if entry is None:
@@ -58,8 +81,18 @@ def run_action(entry_id: int, payload: EntryPayload) -> ActionResult:
     return ActionResult(ok=True, message=message, entry=entry)
 
 
-@router.get("/export")
-def export_entries() -> dict[str, Any]:
-    """导出动力配套清单：返回当前过滤条件下的全量数据。"""
-    items, total = service.list_entries(page=1, size=10000)
-    return {"module": "power", "total": total, "items": items}
+@router.post("/{entry_id}/maintenance", response_model=ActionResult)
+def run_maintenance(entry_id: int, payload: EntryPayload) -> ActionResult:
+    """检修链路：排检修（下次检修日必填，报废设备拦下）或完成检修（补完流程后复用）。"""
+    action = str(payload.values.get("action") or "").strip()
+    if action == "安排检修":
+        entry, message = service.schedule_maintenance(
+            entry_id, payload.values.get(NEXT_MAINT_DATE)
+        )
+    elif action == "完成检修":
+        entry, message = service.complete_maintenance(entry_id)
+    else:
+        entry, message = None, f"检修动作「{action}」不支持，请使用安排检修或完成检修"
+    if entry is None:
+        return ActionResult(ok=False, message=message)
+    return ActionResult(ok=True, message=message, entry=entry)
