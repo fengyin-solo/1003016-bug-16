@@ -3,6 +3,30 @@ from __future__ import annotations
 
 from typing import Any
 
+
+def _power_rows() -> list[dict[str, Any]]:
+    """动力配套多备一些记录，覆盖四种状态，方便验证分页与检修链路。"""
+    statuses = ["正常运行", "降额运行", "故障停机", "已报废"]
+    rows: list[dict[str, Any]] = []
+    for index in range(1, 46):
+        status = statuses[(index - 1) % len(statuses)]
+        rows.append({
+            "id": index,
+            "status": status,
+            "pending": status != "已报废",
+            "abnormal": status in ("降额运行", "故障停机"),
+            "设备编号": f"POWE-{index:04d}",
+            "设备类型": "开关电源柜" if index % 2 else "UPS主机",
+            "额定功率": f"{10 + index}kW",
+            "所属站点": f"站点{index:03d}",
+            "投用日期": f"2025-{index % 12 + 1:02d}-15",
+            "上次检修": f"2026-{index % 6 + 1:02d}-10",
+            "下次检修日": f"2026-{index % 6 + 7:02d}-10",
+            "设备状态": status,
+        })
+    return rows
+
+
 SEED_ROWS: dict[str, list[dict[str, Any]]] = {
     "site": [{'id': 1,
   'status': '运行中',
@@ -76,42 +100,7 @@ SEED_ROWS: dict[str, list[dict[str, Any]]] = {
   '建成年份': '铁塔管理样例3',
   '上次检测': '铁塔管理样例3',
   '铁塔状态': '铁塔管理样例3'}],
-    "power": [{'id': 1,
-  'status': '正常运行',
-  'pending': True,
-  'abnormal': False,
-  '设备编号': 'POWE-0001',
-  '设备类型': '动力配套样例1',
-  '额定功率': '动力配套样例1',
-  '所属站点': '动力配套样例1',
-  '投用日期': '2026-09-01',
-  '上次检修': '动力配套样例1',
-  '下次检修日': '动力配套样例1',
-  '设备状态': '动力配套样例1'},
- {'id': 2,
-  'status': '降额运行',
-  'pending': True,
-  'abnormal': True,
-  '设备编号': 'POWE-0002',
-  '设备类型': '动力配套样例2',
-  '额定功率': '动力配套样例2',
-  '所属站点': '动力配套样例2',
-  '投用日期': '2026-09-02',
-  '上次检修': '动力配套样例2',
-  '下次检修日': '动力配套样例2',
-  '设备状态': '动力配套样例2'},
- {'id': 3,
-  'status': '故障停机',
-  'pending': False,
-  'abnormal': False,
-  '设备编号': 'POWE-0003',
-  '设备类型': '动力配套样例3',
-  '额定功率': '动力配套样例3',
-  '所属站点': '动力配套样例3',
-  '投用日期': '2026-09-03',
-  '上次检修': '动力配套样例3',
-  '下次检修日': '动力配套样例3',
-  '设备状态': '动力配套样例3'}],
+    "power": _power_rows(),
     "battery": [{'id': 1,
   'status': '容量合格',
   'pending': True,

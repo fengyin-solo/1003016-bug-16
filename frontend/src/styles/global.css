@@ -31,5 +31,19 @@ body { margin: 0; background: #f6f8fb; color: #1f2937; }
 .btn.primary { background: var(--brand); border-color: var(--brand); color: #fff; }
 .btn.ghost { background: transparent; }
 .link { border: none; background: none; color: var(--brand); cursor: pointer; padding: 0; }
-.page-foot { display: flex; justify-content: space-between; margin-top: 8px; font-size: 12px; color: var(--muted); }
+.page-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 8px; font-size: 12px; color: var(--muted); }
 .error-text { color: #b42318; }
+.ok-text { color: #067647; }
+.pager { display: flex; gap: 8px; align-items: center; }
+.filter-item input, .filter-item select { padding: 5px 8px; border: 1px solid var(--border); border-radius: 6px; background: #fff; }
+.dialog-mask { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.45); display: flex; align-items: center; justify-content: center; z-index: 20; }
+.dialog { background: #fff; border-radius: 8px; padding: 16px 20px; width: 380px; display: flex; flex-direction: column; gap: 10px; }
+.dialog h3 { margin: 0; font-size: 15px; }
+.dialog-tip { margin: 0; font-size: 12px; color: var(--muted); }
+.dialog-field span { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+.dialog-field input { width: 100%; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; }
+.dialog-actions { display: flex; gap: 8px; justify-content: flex-end; }
+.dialog-error { margin: 0; font-size: 12px; }
+.detail-list { display: grid; grid-template-columns: 96px 1fr; gap: 6px 10px; font-size: 13px; margin: 0; }
+.detail-list dt { color: var(--muted); }
+.detail-list dd { margin: 0; }
